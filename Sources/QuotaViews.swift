@@ -91,7 +91,7 @@ final class QuotaBarView: NSView {
         percentLabel.alignment = .right
         resetLabel.font = .systemFont(ofSize: 11, weight: .regular)
         resetLabel.textColor = .secondaryLabelColor
-        resetLabel.alignment = .right
+        resetLabel.alignment = .left
 
         [titleLabel, meter, percentLabel, resetLabel].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
@@ -115,7 +115,7 @@ final class QuotaBarView: NSView {
             resetLabel.trailingAnchor.constraint(equalTo: trailingAnchor),
             resetLabel.leadingAnchor.constraint(equalTo: percentLabel.trailingAnchor, constant: 12),
             resetLabel.centerYAnchor.constraint(equalTo: meter.centerYAnchor),
-            resetLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 76),
+            resetLabel.widthAnchor.constraint(equalToConstant: 86),
             meter.topAnchor.constraint(equalTo: topAnchor, constant: 2),
             meter.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -2)
         ])
@@ -295,6 +295,7 @@ final class TouchBarQuotaRowView: NSView {
             $0.translatesAutoresizingMaskIntoConstraints = false
         }
         titleLabel.alignment = .left
+        resetLabel.alignment = .left
         resetLabel.font = .monospacedDigitSystemFont(ofSize: 8, weight: .regular)
         resetLabel.textColor = NSColor.white.withAlphaComponent(0.75)
         meter.translatesAutoresizingMaskIntoConstraints = false
