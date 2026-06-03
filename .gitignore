@@ -1,9 +1,9 @@
 .DS_Store
 .build/
+Resources/*.iconset/
 DerivedData/
 *.xcuserstate
 *.xcworkspace/xcuserdata/
 *.xcodeproj/xcuserdata/
 *.swp
 *.tmp
-
