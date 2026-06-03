@@ -311,7 +311,7 @@ final class TouchBarQuotaRowView: NSView {
             meter.leadingAnchor.constraint(equalTo: titleLabel.trailingAnchor, constant: 6),
             meter.centerYAnchor.constraint(equalTo: centerYAnchor),
             meter.heightAnchor.constraint(equalToConstant: 12),
-            meter.widthAnchor.constraint(equalToConstant: 230),
+            meter.trailingAnchor.constraint(equalTo: percentLabel.leadingAnchor, constant: -8),
 
             percentLabel.leadingAnchor.constraint(equalTo: meter.trailingAnchor, constant: 8),
             percentLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
@@ -320,7 +320,7 @@ final class TouchBarQuotaRowView: NSView {
             resetLabel.leadingAnchor.constraint(equalTo: percentLabel.trailingAnchor, constant: 8),
             resetLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
             resetLabel.widthAnchor.constraint(equalToConstant: 66),
-            resetLabel.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor)
+            resetLabel.trailingAnchor.constraint(equalTo: trailingAnchor)
         ])
     }
 
