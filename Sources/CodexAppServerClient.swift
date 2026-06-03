@@ -6,6 +6,7 @@ final class CodexAppServerClient {
     private var input: FileHandle?
     private var output: FileHandle?
     private var nextID = 1
+    private var didInitialize = false
     private let decoder = JSONDecoder()
 
     init(codexPath: String = "/Applications/Codex.app/Contents/Resources/codex") {
@@ -18,18 +19,7 @@ final class CodexAppServerClient {
 
     func readRateLimits() throws -> QuotaSnapshot {
         try ensureStarted()
-        _ = try request(method: "initialize", params: [
-            "clientInfo": [
-                "name": "codex-quota-touchbar",
-                "title": "Codex Quota Touch Bar",
-                "version": "0.1.0"
-            ],
-            "capabilities": [
-                "experimentalApi": true,
-                "requestAttestation": false,
-                "optOutNotificationMethods": []
-            ]
-        ])
+        try initializeIfNeeded()
 
         let response = try request(method: "account/rateLimits/read", params: NSNull())
         guard let result = response["result"] as? [String: Any] else {
@@ -60,6 +50,7 @@ final class CodexAppServerClient {
         process = nil
         input = nil
         output = nil
+        didInitialize = false
     }
 
     private func ensureStarted() throws {
@@ -86,6 +77,31 @@ final class CodexAppServerClient {
         process = newProcess
         input = stdinPipe.fileHandleForWriting
         output = stdoutPipe.fileHandleForReading
+        didInitialize = false
+    }
+
+    private func initializeIfNeeded() throws {
+        guard !didInitialize else {
+            return
+        }
+
+        do {
+            _ = try request(method: "initialize", params: [
+                "clientInfo": [
+                    "name": "codex-quota-touchbar",
+                    "title": "Codex Quota Touch Bar",
+                    "version": "0.1.0"
+                ],
+                "capabilities": [
+                    "experimentalApi": true,
+                    "requestAttestation": false,
+                    "optOutNotificationMethods": []
+                ]
+            ])
+            didInitialize = true
+        } catch QuotaFetchError.rpcError(let message) where message.localizedCaseInsensitiveContains("Already initialized") {
+            didInitialize = true
+        }
     }
 
     private func request(method: String, params: Any) throws -> [String: Any] {
@@ -192,4 +208,3 @@ final class CodexAppServerClient {
         )
     }
 }
-
