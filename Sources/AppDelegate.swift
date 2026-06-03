@@ -2,6 +2,7 @@ import AppKit
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+    private let statusMenu = NSMenu()
     private let popover = NSPopover()
     private let panelView = QuotaPanelView()
     private let touchBarQuotaView = TouchBarQuotaView()
@@ -10,6 +11,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
     private var systemTouchBar: NSTouchBar?
     private var touchBarWindow: TouchBarWindow?
     private var touchBarResponder: TouchBarResponder?
+    private var trayItem: NSCustomTouchBarItem?
+    private var trayButton: NSButton?
     private var snapshot = QuotaSnapshot.empty
     private var lastError: String?
     private var isUsingCachedSnapshot = false
@@ -17,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
     private enum TouchBarID {
         static let bar = NSTouchBar.CustomizationIdentifier("com.local.codexQuotaTouchBar")
         static let quota = NSTouchBarItem.Identifier("com.local.codexQuotaTouchBar.quota")
+        static let trayItem = NSTouchBarItem.Identifier("com.local.codexQuotaTouchBar.tray")
         static let tray = "com.local.codexQuotaTouchBar.tray"
     }
 
@@ -37,6 +41,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         refreshTimer?.invalidate()
+        unregisterControlStripItem()
         client.stop()
     }
 
@@ -71,6 +76,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
 
     @objc private func showPopover() {
         showQuotaPanel()
+    }
+
+    @objc private func statusButtonClicked(_ sender: NSStatusBarButton) {
+        guard let event = NSApp.currentEvent else {
+            showQuotaPanel()
+            return
+        }
+
+        if event.type == .rightMouseUp {
+            showStatusMenu()
+        } else {
+            showQuotaPanel()
+        }
     }
 
     private func showQuotaPanel() {
@@ -124,18 +142,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
 
         button.title = "Codex"
         button.target = self
-        button.action = #selector(showPopover)
+        button.action = #selector(statusButtonClicked(_:))
         button.toolTip = "Codex 额度"
 
-        let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "刷新", action: #selector(refresh), keyEquivalent: "r"))
-        menu.addItem(NSMenuItem(title: "打开 Codex", action: #selector(openCodex), keyEquivalent: "o"))
-        menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "退出", action: #selector(quit), keyEquivalent: "q"))
-        menu.items.forEach { $0.target = self }
-        statusItem.menu = menu
-
+        statusMenu.addItem(NSMenuItem(title: "显示额度", action: #selector(showPopover), keyEquivalent: ""))
+        statusMenu.addItem(NSMenuItem(title: "刷新", action: #selector(refresh), keyEquivalent: "r"))
+        statusMenu.addItem(NSMenuItem(title: "打开 Codex", action: #selector(openCodex), keyEquivalent: "o"))
+        statusMenu.addItem(.separator())
+        statusMenu.addItem(NSMenuItem(title: "退出", action: #selector(quit), keyEquivalent: "q"))
+        statusMenu.items.forEach { $0.target = self }
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+    }
+
+    private func showStatusMenu() {
+        guard let button = statusItem.button else {
+            return
+        }
+
+        statusItem.menu = statusMenu
+        button.performClick(nil)
         statusItem.menu = nil
     }
 
@@ -169,6 +194,42 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
         touchBarWindow = window
 
         NSApp.touchBar = touchBar
+        registerControlStripItem()
+    }
+
+    private func registerControlStripItem() {
+        guard trayItem == nil else {
+            return
+        }
+
+        let button = NSButton(title: "Codex", target: self, action: #selector(showPopover))
+        button.bezelColor = .controlAccentColor
+        button.setButtonType(.momentaryPushIn)
+        button.font = .systemFont(ofSize: 12, weight: .medium)
+        button.widthAnchor.constraint(greaterThanOrEqualToConstant: 72).isActive = true
+
+        let item = NSCustomTouchBarItem(identifier: TouchBarID.trayItem)
+        item.customizationLabel = "Codex 额度"
+        item.view = button
+
+        let selector = NSSelectorFromString("addSystemTrayItem:")
+        if NSTouchBarItem.responds(to: selector) {
+            _ = NSTouchBarItem.perform(selector, with: item)
+        }
+
+        trayItem = item
+        trayButton = button
+    }
+
+    private func unregisterControlStripItem() {
+        guard let trayItem else {
+            return
+        }
+
+        let selector = NSSelectorFromString("removeSystemTrayItem:")
+        if NSTouchBarItem.responds(to: selector) {
+            _ = NSTouchBarItem.perform(selector, with: trayItem)
+        }
     }
 
     private func presentSystemModalTouchBar() {
@@ -192,8 +253,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
         let remaining = snapshot.primary?.remainingPercent ?? snapshot.secondary?.remainingPercent
         if let remaining {
             statusItem.button?.title = "Codex \(remaining)%"
+            trayButton?.title = "Codex \(remaining)%"
         } else {
             statusItem.button?.title = lastError == nil ? "Codex --%" : "Codex 错误"
+            trayButton?.title = lastError == nil ? "Codex --%" : "Codex 错误"
         }
 
         panelView.update(
