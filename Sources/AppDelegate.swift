@@ -40,6 +40,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
         client.stop()
     }
 
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        showQuotaPanel()
+        return false
+    }
+
     func makeTouchBar() -> NSTouchBar? {
         if let systemTouchBar {
             return systemTouchBar
@@ -65,6 +70,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
     }
 
     @objc private func showPopover() {
+        showQuotaPanel()
+    }
+
+    private func showQuotaPanel() {
         guard let button = statusItem.button else {
             return
         }
