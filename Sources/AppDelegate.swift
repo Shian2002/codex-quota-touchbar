@@ -12,6 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
     private var touchBarResponder: TouchBarResponder?
     private var snapshot = QuotaSnapshot.empty
     private var lastError: String?
+    private var isUsingCachedSnapshot = false
 
     private enum TouchBarID {
         static let bar = NSTouchBar.CustomizationIdentifier("com.local.codexQuotaTouchBar")
@@ -86,11 +87,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
                 DispatchQueue.main.async {
                     self.snapshot = newSnapshot
                     self.lastError = nil
+                    self.isUsingCachedSnapshot = false
                     self.render()
                 }
             } catch {
                 DispatchQueue.main.async {
                     self.lastError = error.localizedDescription
+                    self.isUsingCachedSnapshot = self.snapshot.primary != nil || self.snapshot.secondary != nil
                     self.render()
                 }
             }
@@ -184,7 +187,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
             statusItem.button?.title = lastError == nil ? "Codex --%" : "Codex 错误"
         }
 
-        panelView.update(snapshot: snapshot, error: lastError)
+        panelView.update(
+            snapshot: snapshot,
+            error: lastError,
+            isUsingCachedSnapshot: isUsingCachedSnapshot
+        )
         touchBarQuotaView.update(snapshot: snapshot)
         presentSystemModalTouchBar()
     }

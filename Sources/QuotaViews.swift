@@ -168,7 +168,7 @@ final class QuotaPanelView: NSView {
         setup()
     }
 
-    func update(snapshot: QuotaSnapshot, error: String?) {
+    func update(snapshot: QuotaSnapshot, error: String?, isUsingCachedSnapshot: Bool) {
         titleLabel.stringValue = snapshot.limitName
         let plan = snapshot.planType.map { " · " + $0 } ?? ""
         subtitleLabel.stringValue = "本机 Codex app-server" + plan
@@ -179,8 +179,17 @@ final class QuotaPanelView: NSView {
         formatter.locale = Locale(identifier: "zh_CN")
         formatter.dateFormat = "HH:mm:ss"
         let time = "更新 " + formatter.string(from: snapshot.updatedAt)
-        statusLabel.stringValue = error.map { time + " · " + $0 } ?? time
-        statusLabel.textColor = error == nil ? .secondaryLabelColor : .systemRed
+
+        if isUsingCachedSnapshot {
+            statusLabel.stringValue = time + " · 暂用上次成功数据"
+            statusLabel.textColor = .secondaryLabelColor
+        } else if let error {
+            statusLabel.stringValue = time + " · " + error
+            statusLabel.textColor = .systemRed
+        } else {
+            statusLabel.stringValue = time
+            statusLabel.textColor = .secondaryLabelColor
+        }
     }
 
     private func setup() {
