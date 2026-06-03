@@ -128,8 +128,16 @@ final class QuotaBarView: NSView {
 
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "zh_CN")
-        formatter.dateFormat = "HH:mm"
+        formatter.dateFormat = resetDateFormat(for: window)
         return "重置 " + formatter.string(from: resetsAt)
+    }
+
+    private func resetDateFormat(for window: QuotaWindow) -> String {
+        if let windowDurationMins = window.windowDurationMins, windowDurationMins >= 24 * 60 {
+            return "M月d日"
+        }
+
+        return "HH:mm"
     }
 
     private func quotaColor(for remainingPercent: Int) -> NSColor {
@@ -311,7 +319,7 @@ final class TouchBarQuotaRowView: NSView {
 
             resetLabel.leadingAnchor.constraint(equalTo: percentLabel.trailingAnchor, constant: 8),
             resetLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
-            resetLabel.widthAnchor.constraint(equalToConstant: 58),
+            resetLabel.widthAnchor.constraint(equalToConstant: 66),
             resetLabel.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor)
         ])
     }
@@ -323,8 +331,16 @@ final class TouchBarQuotaRowView: NSView {
 
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "zh_CN")
-        formatter.dateFormat = "HH:mm"
+        formatter.dateFormat = resetDateFormat(for: window)
         return "重置 " + formatter.string(from: resetsAt)
+    }
+
+    private func resetDateFormat(for window: QuotaWindow) -> String {
+        if let windowDurationMins = window.windowDurationMins, windowDurationMins >= 24 * 60 {
+            return "M月d日"
+        }
+
+        return "HH:mm"
     }
 
     private func quotaColor(for remainingPercent: Int) -> NSColor {

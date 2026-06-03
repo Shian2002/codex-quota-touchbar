@@ -17,8 +17,16 @@ struct QuotaWindow: Equatable {
 
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "zh_CN")
-        formatter.dateFormat = "M/d HH:mm"
+        formatter.dateFormat = resetDateFormat
         return "重置 " + formatter.string(from: resetsAt)
+    }
+
+    private var resetDateFormat: String {
+        if let windowDurationMins, windowDurationMins >= 24 * 60 {
+            return "M月d日"
+        }
+
+        return "HH:mm"
     }
 }
 
@@ -63,4 +71,3 @@ enum QuotaFetchError: Error, LocalizedError {
         }
     }
 }
-
