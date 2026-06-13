@@ -1,10 +1,6 @@
 import AppKit
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
-    private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-    private let statusMenu = NSMenu()
-    private let popover = NSPopover()
-    private let panelView = QuotaPanelView()
     private let touchBarQuotaView = TouchBarQuotaView()
     private let client = CodexAppServerClient()
     private var refreshTimer: Timer?
@@ -25,10 +21,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(.accessory)
-        configureStatusItem()
-        configurePopover()
+        NSApp.setActivationPolicy(.regular)
         installTouchBar()
+        NSApp.activate(ignoringOtherApps: true)
         refresh()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
             self?.presentSystemModalTouchBar()
@@ -46,7 +41,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        showQuotaPanel()
+        presentSystemModalTouchBar()
         return false
     }
 
@@ -72,37 +67,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
         let item = NSCustomTouchBarItem(identifier: identifier)
         item.view = touchBarQuotaView
         return item
-    }
-
-    @objc private func showPopover() {
-        showQuotaPanel()
-    }
-
-    @objc private func statusButtonClicked(_ sender: NSStatusBarButton) {
-        guard let event = NSApp.currentEvent else {
-            showQuotaPanel()
-            return
-        }
-
-        if event.type == .rightMouseUp {
-            showStatusMenu()
-        } else {
-            showQuotaPanel()
-        }
-    }
-
-    private func showQuotaPanel() {
-        guard let button = statusItem.button else {
-            return
-        }
-
-        if popover.isShown {
-            popover.performClose(nil)
-        } else {
-            refresh()
-            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-            presentSystemModalTouchBar()
-        }
     }
 
     @objc private func refresh() {
@@ -135,42 +99,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
         NSWorkspace.shared.open(URL(fileURLWithPath: "/Applications/Codex.app"))
     }
 
-    private func configureStatusItem() {
-        guard let button = statusItem.button else {
-            return
-        }
-
-        button.title = "Codex"
-        button.target = self
-        button.action = #selector(statusButtonClicked(_:))
-        button.toolTip = "Codex 额度"
-
-        statusMenu.addItem(NSMenuItem(title: "显示额度", action: #selector(showPopover), keyEquivalent: ""))
-        statusMenu.addItem(NSMenuItem(title: "刷新", action: #selector(refresh), keyEquivalent: "r"))
-        statusMenu.addItem(NSMenuItem(title: "打开 Codex", action: #selector(openCodex), keyEquivalent: "o"))
-        statusMenu.addItem(.separator())
-        statusMenu.addItem(NSMenuItem(title: "退出", action: #selector(quit), keyEquivalent: "q"))
-        statusMenu.items.forEach { $0.target = self }
-        button.sendAction(on: [.leftMouseUp, .rightMouseUp])
-    }
-
-    private func showStatusMenu() {
-        guard let button = statusItem.button else {
-            return
-        }
-
-        statusItem.menu = statusMenu
-        button.performClick(nil)
-        statusItem.menu = nil
-    }
-
-    private func configurePopover() {
-        let controller = NSViewController()
-        controller.view = panelView
-        popover.contentViewController = controller
-        popover.behavior = .transient
-    }
-
     private func installTouchBar() {
         guard let touchBar = makeTouchBar() else {
             return
@@ -190,6 +118,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
         window.makeFirstResponder(responder)
         window.level = .statusBar
         window.alphaValue = 0.01
+        window.makeKeyAndOrderFront(nil)
         window.orderFrontRegardless()
         touchBarWindow = window
 
@@ -202,11 +131,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
             return
         }
 
-        let button = NSButton(title: "Codex", target: self, action: #selector(showPopover))
+        let button = NSButton(title: "Codex", target: self, action: #selector(refresh))
         button.bezelColor = .controlAccentColor
         button.setButtonType(.momentaryPushIn)
         button.font = .systemFont(ofSize: 12, weight: .medium)
-        button.widthAnchor.constraint(greaterThanOrEqualToConstant: 72).isActive = true
+        button.widthAnchor.constraint(equalToConstant: 64).isActive = true
 
         let item = NSCustomTouchBarItem(identifier: TouchBarID.trayItem)
         item.customizationLabel = "Codex 额度"
@@ -252,18 +181,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
     private func render() {
         let remaining = snapshot.primary?.remainingPercent ?? snapshot.secondary?.remainingPercent
         if let remaining {
-            statusItem.button?.title = "Codex \(remaining)%"
             trayButton?.title = "Codex \(remaining)%"
         } else {
-            statusItem.button?.title = lastError == nil ? "Codex --%" : "Codex 错误"
             trayButton?.title = lastError == nil ? "Codex --%" : "Codex 错误"
         }
 
-        panelView.update(
-            snapshot: snapshot,
-            error: lastError,
-            isUsingCachedSnapshot: isUsingCachedSnapshot
-        )
         touchBarQuotaView.update(snapshot: snapshot)
         presentSystemModalTouchBar()
     }

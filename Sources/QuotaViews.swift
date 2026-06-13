@@ -5,21 +5,24 @@ final class SegmentedQuotaMeterView: NSView {
     private var filledColor: NSColor = .systemRed
     private let segmentCount: Int
     private let verticalInset: CGFloat
+    private let preferredWidth: CGFloat
 
-    init(segmentCount: Int = 24, verticalInset: CGFloat = 3) {
+    init(segmentCount: Int = 24, verticalInset: CGFloat = 3, preferredWidth: CGFloat = 180) {
         self.segmentCount = segmentCount
         self.verticalInset = verticalInset
+        self.preferredWidth = preferredWidth
         super.init(frame: .zero)
     }
 
     required init?(coder: NSCoder) {
         self.segmentCount = 24
         self.verticalInset = 3
+        self.preferredWidth = 180
         super.init(coder: coder)
     }
 
     override var intrinsicContentSize: NSSize {
-        NSSize(width: 180, height: 16)
+        NSSize(width: preferredWidth, height: 16)
     }
 
     func update(percent: Int, color: NSColor) {
@@ -240,7 +243,7 @@ final class TouchBarQuotaView: NSView {
     }
 
     private func setup() {
-        frame = NSRect(x: 0, y: 0, width: 660, height: 30)
+        frame = NSRect(x: 0, y: 0, width: 360, height: 30)
         wantsLayer = true
         appearance = NSAppearance(named: .vibrantDark)
         layer?.backgroundColor = NSColor.black.cgColor
@@ -266,7 +269,7 @@ final class TouchBarQuotaView: NSView {
 
 final class TouchBarQuotaRowView: NSView {
     private let titleLabel = NSTextField(labelWithString: "")
-    private let meter = SegmentedQuotaMeterView(segmentCount: 28, verticalInset: 2)
+    private let meter = SegmentedQuotaMeterView(segmentCount: 18, verticalInset: 2, preferredWidth: 112)
     private let percentLabel = NSTextField(labelWithString: "")
     private let resetLabel = NSTextField(labelWithString: "")
 
@@ -307,7 +310,11 @@ final class TouchBarQuotaRowView: NSView {
         resetLabel.alignment = .left
         resetLabel.font = .monospacedDigitSystemFont(ofSize: 8, weight: .regular)
         resetLabel.textColor = NSColor.white.withAlphaComponent(0.75)
+        resetLabel.isHidden = false
         meter.translatesAutoresizingMaskIntoConstraints = false
+        meter.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        meter.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        resetLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
         [titleLabel, meter, percentLabel, resetLabel].forEach(addSubview)
 
@@ -316,7 +323,7 @@ final class TouchBarQuotaRowView: NSView {
 
             titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor),
             titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
-            titleLabel.widthAnchor.constraint(equalToConstant: 40),
+            titleLabel.widthAnchor.constraint(equalToConstant: 32),
 
             meter.leadingAnchor.constraint(equalTo: titleLabel.trailingAnchor, constant: 6),
             meter.centerYAnchor.constraint(equalTo: centerYAnchor),
