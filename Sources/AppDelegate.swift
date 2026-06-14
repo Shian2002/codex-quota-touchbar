@@ -4,6 +4,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
     private let touchBarQuotaView = TouchBarQuotaView()
     private let client = CodexAppServerClient()
     private var refreshTimer: Timer?
+    private var touchBarPresentationTimer: Timer?
     private var systemTouchBar: NSTouchBar?
     private var touchBarWindow: TouchBarWindow?
     private var touchBarResponder: TouchBarResponder?
@@ -24,9 +25,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
         NSApp.setActivationPolicy(.regular)
         installTouchBar()
         NSApp.activate(ignoringOtherApps: true)
+        startTouchBarPresentationTimer()
         refresh()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
-            self?.presentSystemModalTouchBar()
+            self?.keepTouchBarVisible()
         }
 
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
@@ -36,13 +38,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         refreshTimer?.invalidate()
+        touchBarPresentationTimer?.invalidate()
         unregisterControlStripItem()
         client.stop()
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        presentSystemModalTouchBar()
+        keepTouchBarVisible()
         return false
+    }
+
+    func applicationDidBecomeActive(_ notification: Notification) {
+        keepTouchBarVisible()
+    }
+
+    func applicationDidResignActive(_ notification: Notification) {
+        keepTouchBarVisible()
     }
 
     func makeTouchBar() -> NSTouchBar? {
@@ -126,6 +137,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
         registerControlStripItem()
     }
 
+    private func startTouchBarPresentationTimer() {
+        touchBarPresentationTimer?.invalidate()
+        touchBarPresentationTimer = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { [weak self] _ in
+            self?.keepTouchBarVisible()
+        }
+    }
+
     private func registerControlStripItem() {
         guard trayItem == nil else {
             return
@@ -178,6 +196,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
         )
     }
 
+    private func keepTouchBarVisible() {
+        touchBarWindow?.makeKeyAndOrderFront(nil)
+        touchBarWindow?.orderFrontRegardless()
+        NSApp.touchBar = systemTouchBar ?? makeTouchBar()
+        presentSystemModalTouchBar()
+    }
+
     private func render() {
         let remaining = snapshot.primary?.remainingPercent ?? snapshot.secondary?.remainingPercent
         if let remaining {
@@ -187,7 +212,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate {
         }
 
         touchBarQuotaView.update(snapshot: snapshot)
-        presentSystemModalTouchBar()
+        keepTouchBarVisible()
     }
 }
 
